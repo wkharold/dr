@@ -27,7 +27,7 @@ func TestRegistry(t *testing.T) {
 			map[string][]string{
 				"Vary":                      []string{"Accept"},
 				"Content-Type":              []string{"application/json"},
-				"X-Docker-Registry-Version": []string{"0.6.0"},
+				"X-Docker-Registry-Version": []string{drv},
 			},
 		},
 	}
