@@ -1,13 +1,25 @@
 package dr
 
-import "github.com/gorilla/mux"
+import (
+	"net/http"
+
+	"github.com/gorilla/mux"
+)
+
+type Context struct {
+	Telemetry bool
+}
 
 type Registry struct {
 	*mux.Router
 }
 
-func New() (*Registry, error) {
+func New(ctx Context) (*Registry, error) {
 	r := mux.NewRouter()
+
+	if ctx.Telemetry {
+		r.Handle("/debug/vars", http.DefaultServeMux)
+	}
 
 	v1 := r.PathPrefix("/v1").Subrouter()
 	v1.HandleFunc("/_ping", ping)

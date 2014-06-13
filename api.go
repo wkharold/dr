@@ -1,6 +1,9 @@
 package dr
 
-import "net/http"
+import (
+	_ "expvar"
+	"net/http"
+)
 
 const (
 	drv = "0.7.0"
