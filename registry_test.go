@@ -8,7 +8,7 @@ import (
 )
 
 func TestRegistry(t *testing.T) {
-	r, err := New()
+	r, err := New(Context{})
 	if err != nil {
 		t.Fatal(err)
 	}

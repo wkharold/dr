@@ -1,20 +1,32 @@
 package dr
 
 import (
+	"io"
 	"net/http"
 
 	"github.com/gorilla/mux"
 )
 
-type Context struct {
-	Telemetry bool
+// Registry is implemented by types in the dr package that respond to Docker Registry
+// API requests.
+type Registry interface {
+	ServeHTTP(w http.ResponseWriter, r *http.Request)
 }
 
-type Registry struct {
+// Context collects up all the context required by a DockerRegistry instance.
+type Context struct {
+	Telemetry bool
+	AccessOut io.Writer
+}
+
+// DockerRegistry instances are responsible for responding to Docker Registry API requests.
+type DockerRegistry struct {
 	*mux.Router
 }
 
-func New(ctx Context) (*Registry, error) {
+// New uses the given Context to instantiate a type that implements Registry and so be used
+// to respond to Docker Registry API requests.
+func New(ctx Context) (Registry, error) {
 	r := mux.NewRouter()
 
 	if ctx.Telemetry {
@@ -30,5 +42,9 @@ func New(ctx Context) (*Registry, error) {
 	v1.HandleFunc("/repositories/{namespace}/{repository}/tags/{tag}", tag)
 	v1.HandleFunc("/repositories/{namespace}/{repository}/", repository)
 
-	return &Registry{r}, nil
+	if ctx.AccessOut != nil {
+		return &AccessLogger{DockerRegistry{r}, ctx.AccessOut}, nil
+	}
+
+	return &DockerRegistry{r}, nil
 }
