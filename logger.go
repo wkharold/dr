@@ -27,7 +27,8 @@ type logrecord struct {
 
 // responseWriterWrapper captures the response status for use in log lines.
 type responseWriterWrapper struct {
-	status int
+	status        int
+	responseBytes int64
 	http.ResponseWriter
 }
 
@@ -49,25 +50,35 @@ func (a *AccessLogger) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		elapsedTime: time.Duration(0),
 	}
 
-	rww := &responseWriterWrapper{http.StatusOK, w}
+	rww := &responseWriterWrapper{http.StatusOK, 0, w}
 
 	start := time.Now()
 	a.reg.ServeHTTP(rww, r)
 	end := time.Now()
 
 	record.status = rww.status
+	record.responseBytes = rww.responseBytes
 	record.time = end.UTC()
 	record.elapsedTime = end.Sub(start)
 
 	record.log(a.out)
 }
 
+// log writes a Common Log Format line.
 func (lr logrecord) log(out io.Writer) {
 	tf := lr.time.Format("02/Jan/2006 03:04:05")
 	rl := fmt.Sprintf("%s %s %s", lr.method, lr.uri, lr.protocol)
 	fmt.Fprintf(out, "%s - - [%s] \"%s\" %d %d %.4f\n", lr.ip, tf, rl, lr.status, lr.responseBytes, lr.elapsedTime.Seconds())
 }
 
+// Write delegates to the wrapped ResponseWriter and records the number of bytes written.
+func (rww *responseWriterWrapper) Write(data []byte) (int, error) {
+	n, err := rww.ResponseWriter.Write(data)
+	rww.responseBytes += int64(n)
+	return n, err
+}
+
+// WriterHeader captures the status code and the delegates to the wrapped ResponseWriter.
 func (rww *responseWriterWrapper) WriteHeader(code int) {
 	rww.status = code
 	rww.ResponseWriter.WriteHeader(code)
